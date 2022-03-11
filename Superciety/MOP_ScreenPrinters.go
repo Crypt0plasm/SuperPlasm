@@ -26,12 +26,13 @@ import (
 func AddySpecsPrinter(Addy ElrondAddress) {
 	Super, SuperLP, SP := AddySpecs(Addy)
 	fmt.Println("")
-	fmt.Println("")
-	fmt.Println("===========Scanned Input===============")
+	fmt.Println("==========================Scanned Input===================================")
 	fmt.Println("ADDRESS:", Addy)
 	fmt.Println("My Super is", Super)
 	fmt.Println("My SuperLP is", SuperLP)
 	fmt.Println("My MKSP is", SP)
+	fmt.Println("======================END-Scanned Input===================================")
+	fmt.Println("")
 	return
 }
 
@@ -45,16 +46,16 @@ func AddySpecsPrinter(Addy ElrondAddress) {
 //
 func PricePrinter(Prices MetaSuperPrice) {
 	fmt.Println("")
-	fmt.Println("")
-	fmt.Println("===========Super/EGLD==================")
+	fmt.Println("==========================SUPER--Prices===================================")
+	fmt.Println("===========================Super//EGLD=================================")
 	fmt.Println("Price of 1 EGLD is", Prices.SP.SV.USDperEGLD, "USD")
 	fmt.Println("Price of 1 EGLD is", Prices.SP.SV.SUPERperEGLD, "SUPER")
 	fmt.Println("Price of 1 SUPER is", Prices.SP.SV.USDperSUPER, "USD")
-
-	fmt.Println("===========SUPER-LP====================")
+	fmt.Println("============================SUPER--LP==================================")
 	fmt.Println("1 SUPER LP equals", Prices.SP.LPVC.SuperHalf, "Super from the Super Pool")
 	fmt.Println("1 SUPER LP equals", Prices.SP.LPVC.ElrondHalf, "EGLD from the Super Pool")
 	fmt.Println("1 SUPER LP equals", Prices.SP.LPVC.TotalUSD, "USD")
+	fmt.Println("==========================SUPER--Prices===================================")
 	fmt.Println("")
 }
 

@@ -47,7 +47,10 @@ func SuperLPMelter(Addy ElrondAddress, CurrentPrice MetaSuperPrice) (OptimalLpRe
 	//Computes how many Melt Steps must be calculated.
 	//One Melt Step is the equivalent of 10 USD
 	//This is how many iterations a new MKSP will be computed for.
+	fmt.Println("My SuperLP is ", MySuperLp)
+	fmt.Println("SuperLp Price is", CurrentPrice.SP.LPVC.TotalUSD)
 	MeltSteps := mt.TruncateCustom(mt.DIVxc(mt.MULxc(MySuperLp, CurrentPrice.SP.LPVC.TotalUSD), p.NFI(10)), 0)
+	fmt.Println(MeltSteps, "Liquidity melt steps must be checked:")
 
 	//Depending on the number of Melt-Steps, the amount of LP that gets subtracted for each step is computed.
 	//This amount is broken into Super and EGLD, EGLD is used to "virtually" buy Super.
@@ -77,7 +80,7 @@ func SuperLPMelter(Addy ElrondAddress, CurrentPrice MetaSuperPrice) (OptimalLpRe
 		BaseStringPoint := "Super-LP Melting Iteration "
 		//StringPoint := strings.Repeat(".",i)
 		//StringToPrint := BaseStringPoint + StringPoint
-		fmt.Print("\r", BaseStringPoint, i, "/", mt.SUBxc(MeltSteps, p.NFI(1)))
+		fmt.Print("\r", BaseStringPoint, i+1, "/", MeltSteps)
 
 		RemainingVirtualLP = mt.TruncateCustom(mt.SUBxc(RemainingVirtualLP, SubtractingLP), 18)
 		//Subtracting the subtracted LP to the total LP existing in the VirtualPrices.
@@ -99,7 +102,6 @@ func SuperLPMelter(Addy ElrondAddress, CurrentPrice MetaSuperPrice) (OptimalLpRe
 			MaxIteration = i + 1
 		}
 	}
-	fmt.Println("")
 	if MaxIteration == 0 {
 		OptimalLpReduction = p.NFI(0)
 	} else {
@@ -138,7 +140,10 @@ func SuperMelter(Addy ElrondAddress, CurrentPrice MetaSuperPrice) (OptimalSuperR
 	//Computes how many Melt Steps must be calculated.
 	//One Melt Step is the equivalent of 10 USD
 	//This is how many iterations a new MKSP will be computed for.
+	fmt.Println("My Super is ", MySuper)
+	fmt.Println("Super Price is", CurrentPrice.SP.SV.USDperSUPER)
 	MeltSteps := mt.TruncateCustom(mt.DIVxc(mt.MULxc(MySuper, CurrentPrice.SP.SV.USDperSUPER), p.NFI(10)), 0)
+	fmt.Println(MeltSteps, "Super melt steps must be checked:")
 
 	//Depending on the number of Melt-Steps, the amount of Super that gets subtracted for each step is computed.
 	//This amount is broken into 2 equal Super Parts. Half is kept, half is swapped for EGLD.
@@ -171,7 +176,7 @@ func SuperMelter(Addy ElrondAddress, CurrentPrice MetaSuperPrice) (OptimalSuperR
 		BaseStringPoint := "Super    Melting Iteration "
 		//StringPoint := strings.Repeat(".",i)
 		//StringToPrint := BaseStringPoint + StringPoint
-		fmt.Print("\r", BaseStringPoint, i, "/", mt.SUBxc(MeltSteps, p.NFI(1)))
+		fmt.Print("\r", BaseStringPoint, i+1, "/", MeltSteps)
 
 		RemainingVirtualSuper = mt.SUBxc(RemainingVirtualSuper, SubtractingSuper)
 		//No Subtraction step must be taken here as opposed to the SuperLPMelter
@@ -194,7 +199,6 @@ func SuperMelter(Addy ElrondAddress, CurrentPrice MetaSuperPrice) (OptimalSuperR
 			MaxIteration = i + 1
 		}
 	}
-	fmt.Println("")
 	if MaxIteration == 0 {
 		OptimalSuperReduction = p.NFI(0)
 	} else {
@@ -218,22 +222,26 @@ func SuperLPtoSuperConvertor(InitialLP, UsedLP *p.Decimal, Prices MetaSuperPrice
 	Elrond := mt.TruncateCustom(mt.MULxc(UsedLP, Prices.SP.LPVC.ElrondHalf), 18)
 	SuperBought, NewPrices := BuySuper(Elrond, Prices)
 	SuperGained := mt.ADDxc(Super1, SuperBought)
+	RemainingLP := mt.SUBxc(InitialLP, UsedLP)
 
 	//P1 := Prices.SP.SV.USDperSUPER
 	//P2 := NewPrices.SP.SV.USDperSUPER
 	//PP := PercentSwing(P1,P2)
 
 	//Printing Data
-	fmt.Println("Initial      SUPER-EGLD-LP:", InitialLP, "SUPER")
-	fmt.Println("SwapQuantity SUPER-EGLD-LP:", UsedLP, "SUPER-EGLD-LP yields:")
-	fmt.Println("Following Liquidity Amount:", Super1, "SUPER and,")
-	fmt.Println("Following Liquidity Amount:", Elrond, "EGLD, which buys:")
-	fmt.Println("Bought    Liquidity Amount:", SuperBought, "SUPER")
-	fmt.Println("For a   TOTAL Liquidity of:", SuperGained, "SUPER")
+	fmt.Println("STEP0:          from the:", InitialLP, "SUPER-EGLD-LP")
+	fmt.Println("")
+	fmt.Println("STEP1:            remove:", UsedLP, "SUPER-EGLD-LP which")
+	fmt.Println("STEP2:           creates:", Super1, "SUPER")
+	fmt.Println("STEP3:               and:", Elrond, "EGLD; use this EGLD")
+	fmt.Println("STEP4:            to buy:", SuperBought, "SUPER;")
+	fmt.Println("")
+	fmt.Println("STEP5:        you gained:", SuperGained, "SUPER anew.")
+	fmt.Println("STEP6:          and have:", RemainingLP, "SUPER-EGLD-LP left.")
+	fmt.Println("")
 	fmt.Println("=======")
-	fmt.Println("Buying Super with EGLD to increase MKSP")
 	//fmt.Println("Increased the price by ",PP,"%")
-	fmt.Println("The Price increased from:")
+	fmt.Println("Price movement from:")
 	fmt.Println(Prices.SP.SV.USDperSUPER, "USD to:")
 	fmt.Println(NewPrices.SP.SV.USDperSUPER, "USD.")
 }
@@ -259,17 +267,17 @@ func SuperToSuperLPConvertor(InitialSuper, UsedSuper *p.Decimal, Prices MetaSupe
 	//PP := PercentSwing(P1,P2)
 
 	//Printing Data
-	fmt.Println("Initial              SUPER:", InitialSuper, "SUPER")
-	fmt.Println("Spending             SUPER:", UsedSuper, "SUPER")
-	fmt.Println("SwapQuantity         SUPER:", HalfSuper, "SUPER to EGLD")
-	fmt.Println("Add Liquidity with    EGLD:", EgldGained, "EGLD")
-	fmt.Println("To create    SUPER-EGLD-LP:", ResultedLP, "SUPER-EGLD-LP")
-	fmt.Println("Remaining amount     SUPER:", RemainingSuper, "SUPER")
-	fmt.Println("=======")
-
-	fmt.Println("Selling Super for EGLD to add Liquidity")
+	fmt.Println("STEP0,           from the:", InitialSuper, "SUPER")
+	fmt.Println("")
+	fmt.Println("STEP1:               use:", HalfSuper, "SUPER to swap to EGLD;")
+	fmt.Println("STEP2:               use:", EgldGained, "EGLD to add Liquidity;")
+	fmt.Println("STEP3:    you now gained:", ResultedLP, "SUPER-EGLD-LP anew.")
+	fmt.Println("")
+	fmt.Println("STEP4: you are left with:", RemainingSuper, "SUPER")
+	fmt.Println("")
+	fmt.Println("========")
 	//fmt.Println("Dropped the price by ",PP,"%")
-	fmt.Println("The Price dropped from:")
+	fmt.Println("Price movement from:")
 	fmt.Println(Prices.SP.SV.USDperSUPER, "USD to:")
 	fmt.Println(NewPrices.SP.SV.USDperSUPER, "USD.")
 }
@@ -285,36 +293,56 @@ func SuperToSuperLPConvertor(InitialSuper, UsedSuper *p.Decimal, Prices MetaSupe
 //
 func Optimizer(Addy ElrondAddress) {
 	ScannedSuperPrices := GetAllSuperPrices()
+	PricePrinter(ScannedSuperPrices)
 	AddySuper, AddyLP, MKSP := AddySpecs(Addy)
+	AddySpecsPrinter(Addy)
 	fmt.Println("")
 	fmt.Println("")
-	fmt.Println("===========Optimizer==================")
-
+	fmt.Println("")
+	fmt.Println("==========================LiquidityMelter=================================")
 	LPReduction, Value := SuperLPMelter(Addy, ScannedSuperPrices)
-	if mt.DecimalGreaterThan(LPReduction, p.NFS("0")) == true {
-		fmt.Println("OldMKSP is", MKSP)
-		fmt.Println("NewMKSP is", Value)
+	if mt.DecimalEqual(MKSP, Value) == false {
 		MKSPGain := mt.SUBxc(Value, MKSP)
-		fmt.Println("===========Results====================")
+		fmt.Println("======================END-LiquidityMelter=================================")
+		fmt.Println("")
+
+		fmt.Println("==========================Results=========================================")
 		SuperLPtoSuperConvertor(AddyLP, LPReduction, ScannedSuperPrices)
 		fmt.Println("")
 		fmt.Println("If you reduce your LP by", LPReduction)
-		fmt.Println("You will increase MKSP by", MKSPGain)
+		fmt.Println("You will increase your MKSP from", MKSP, "to", Value)
+		fmt.Println("which means a gain of", MKSPGain)
+		fmt.Println("======================END-Results=========================================")
 		fmt.Println("")
 	} else {
+		fmt.Println("")
+		fmt.Println("======================END-LiquidityMelter=================================")
+		fmt.Println("")
+		fmt.Println("==========================SuperMelter=====================================")
 		SuperReduction, Value2 := SuperMelter(Addy, ScannedSuperPrices)
-		fmt.Println("===========Results====================")
-		if mt.DecimalGreaterThan(SuperReduction, p.NFS("0")) == true {
-			fmt.Println("OldMKSP is", MKSP)
-			fmt.Println("NewMKSP is", Value2)
+		if mt.DecimalEqual(MKSP, Value2) == false {
 			MKSPGain2 := mt.SUBxc(Value2, MKSP)
+			fmt.Println("")
+			fmt.Println("======================END-SuperMelter=====================================")
+			fmt.Println("")
+
+			fmt.Println("==========================Results=========================================")
 			SuperToSuperLPConvertor(AddySuper, SuperReduction, ScannedSuperPrices)
 			fmt.Println("")
 			fmt.Println("If you use ", SuperReduction, "SUPER to buy LP")
-			fmt.Println("You will increase MKSP by", MKSPGain2)
+			fmt.Println("You will increase your MKSP from", MKSP, "to", Value2)
+			fmt.Println("which means a gain of", MKSPGain2)
+			fmt.Println("======================END-Results=========================================")
 			fmt.Println("")
 		} else {
+			fmt.Println("")
+			fmt.Println("======================END-SuperMelter=====================================")
+			fmt.Println("")
+
+			fmt.Println("==========================Results=========================================")
 			fmt.Println("Your Super and LP amounts are optimal for Maximum MKSP")
+			fmt.Println("======================END-Results=========================================")
+			fmt.Println("")
 		}
 		fmt.Println("")
 	}
