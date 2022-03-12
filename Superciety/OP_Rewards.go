@@ -2,7 +2,6 @@ package Superciety
 
 import (
 	mt "SuperPlasm/SuperMath"
-	"fmt"
 	p "github.com/Crypt0plasm/Firefly-APD"
 )
 
@@ -367,7 +366,6 @@ func SuperPowerComputerCore(SuperAmount, LPAmount, LPThreshold *p.Decimal) *p.De
 			LiquidityBonus = LPAmount
 		} else if mt.DecimalEqual(LPThreshold, p.NFI(2)) == true {
 			LiquidityBonus = mt.TruncateCustom(mt.Logarithm(LPThreshold, LPAmount), 18)
-			fmt.Println("LQB:", LiquidityBonus)
 		}
 
 		//And Thus SuperPower is computed by multiplying SuperAmount with "Liquidity Bonus"
@@ -382,7 +380,7 @@ func SuperPowerComputerCore(SuperAmount, LPAmount, LPThreshold *p.Decimal) *p.De
 		FinalSP = p.NFS("0")
 	}
 
-	return mt.TruncateCustom(FinalSP, 18)
+	return mt.TruncateCustom(FinalSP, 0)
 }
 
 //
