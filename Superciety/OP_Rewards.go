@@ -2,6 +2,7 @@ package Superciety
 
 import (
 	mt "SuperPlasm/SuperMath"
+	"fmt"
 	p "github.com/Crypt0plasm/Firefly-APD"
 )
 
@@ -251,7 +252,7 @@ func MetaKosonicSuperPowerPromille(SuperAmount *p.Decimal) *p.Decimal {
 	)
 
 	//Rounding SuperAmount to IntegerValue
-	SA := mt.TruncateCustom(SuperAmount, 0)
+	SA := SuperAmount
 
 	ProMilleFunc := func(StartThreshold, EndThreshold, TopPromille, WidthPromille, Value *p.Decimal) *p.Decimal {
 		var (
@@ -317,8 +318,7 @@ func MetaKosonicSuperPowerPromille(SuperAmount *p.Decimal) *p.Decimal {
 		ProMille = ProMilleFunc(T24, STS, TP25, TPW5, SA)
 	}
 
-	PM := mt.TruncateCustom(ProMille, 0)
-	return PM
+	return ProMille
 }
 
 //
@@ -367,6 +367,7 @@ func SuperPowerComputerCore(SuperAmount, LPAmount, LPThreshold *p.Decimal) *p.De
 			LiquidityBonus = LPAmount
 		} else if mt.DecimalEqual(LPThreshold, p.NFI(2)) == true {
 			LiquidityBonus = mt.TruncateCustom(mt.Logarithm(LPThreshold, LPAmount), 18)
+			fmt.Println("LQB:", LiquidityBonus)
 		}
 
 		//And Thus SuperPower is computed by multiplying SuperAmount with "Liquidity Bonus"
@@ -381,7 +382,7 @@ func SuperPowerComputerCore(SuperAmount, LPAmount, LPThreshold *p.Decimal) *p.De
 		FinalSP = p.NFS("0")
 	}
 
-	return mt.TruncateCustom(FinalSP, 0)
+	return mt.TruncateCustom(FinalSP, 18)
 }
 
 //
