@@ -32,6 +32,9 @@ Prints Super-Power variant Chains.
 		BuySuperPowerH = `--buy-sp <ElrondAddress>;
 Computes on what you must spend EGLD, given a certain address, to maximize MKSP.
 `
+		BuySuperH = `--buy-super <EGLD-Amount>;
+Computes new Prices if Super is bought with the given EGLD Amount.
+`
 	)
 
 	const (
@@ -42,6 +45,7 @@ Computes on what you must spend EGLD, given a certain address, to maximize MKSP.
 		LiqRewPrg     = "print-lrp"       //String
 		SuperPower    = "print-sp"        //String
 		BuySuperPower = "buy-sp"          //String
+		BuySuper      = "buy-super"       //String
 	)
 
 	FlagCmpMKSP := flag.String(CmpMKSP, "0", CmpMKSPH)
@@ -51,6 +55,7 @@ Computes on what you must spend EGLD, given a certain address, to maximize MKSP.
 	FlagLiqRewPrg := flag.String(LiqRewPrg, "0", LiqRewPrgmH)
 	FlagSuperPower := flag.Bool(SuperPower, false, SuperPowerH)
 	FlagBuySuperPower := flag.String(BuySuperPower, "0", BuySuperPowerH)
+	FlagBuySuper := flag.String(BuySuper, "0", BuySuperH)
 	//
 	flag.Parse()
 
@@ -90,7 +95,7 @@ Computes on what you must spend EGLD, given a certain address, to maximize MKSP.
 		ss.SuperPowers()
 	}
 
-	//5)Flag Prints Liquidity Reward Program Chains
+	//7)Flag Prints Liquidity Reward Program Chains
 	if *FlagBuySuperPower != "0" {
 		var EGLD string
 		Addy := ss.ElrondAddress(*FlagBuySuperPower)
@@ -101,5 +106,12 @@ Computes on what you must spend EGLD, given a certain address, to maximize MKSP.
 		Money := p.NFS(EGLD)
 
 		ss.Acquisition(Addy, Money)
+	}
+
+	//8)Flag Prints Liquidity Reward Program Chains
+	if *FlagBuySuper != "0" {
+		Money := p.NFS(*FlagBuySuper)
+
+		ss.TraderBuyer(Money)
 	}
 }
