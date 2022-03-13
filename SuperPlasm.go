@@ -9,25 +9,28 @@ import (
 
 func main() {
 	var (
-		CmpMKSPH = `--cmp-mksp=<ElrondAddress>;
+		CmpMKSPH = `--cmp-mksp <ElrondAddress>;
 Computes and Prints the Meta-Kosonic Super-Power of a given Elrond Address
 The MKSP is a whole number
 `
-		OptimzeH = `--optimize=<ElrondAddress>;
+		OptimzeH = `--optimize <ElrondAddress>;
 Computes if an address is optimized for maximum MKSP; If not it display what
 must be done to optimize its holding
 `
-		SuperHldH = `--get-super=<ElrondAddress>;
+		SuperHldH = `--get-super <ElrondAddress>;
 Displays the Super Holdings, LP and MKSP of a given Elrond Address
 `
 		SuperPriceH = `--get-super-price;
 Display all relevant Super Prices.
 `
-		LiqRewPrgmH = `--print-lrp=<Daily-Reward-Amount>;
+		LiqRewPrgmH = `--print-lrp <Daily-Reward-Amount>;
 Prints Liquidity Reward Program rewards Chain.
 `
 		SuperPowerH = `--print-sp;
 Prints Super-Power variant Chains.
+`
+		BuySuperPowerH = `--buy-sp <ElrondAddress>;
+Computes on what you must spend EGLD, given a certain address, to maximize MKSP.
 `
 	)
 
@@ -38,6 +41,7 @@ Prints Super-Power variant Chains.
 		SuperPrice    = "get-super-price" //String
 		LiqRewPrg     = "print-lrp"       //String
 		SuperPower    = "print-sp"        //String
+		BuySuperPower = "buy-sp"          //String
 	)
 
 	FlagCmpMKSP := flag.String(CmpMKSP, "0", CmpMKSPH)
@@ -46,6 +50,7 @@ Prints Super-Power variant Chains.
 	FlagSuperPrice := flag.Bool(SuperPrice, false, SuperPriceH)
 	FlagLiqRewPrg := flag.String(LiqRewPrg, "0", LiqRewPrgmH)
 	FlagSuperPower := flag.Bool(SuperPower, false, SuperPowerH)
+	FlagBuySuperPower := flag.String(BuySuperPower, "0", BuySuperPowerH)
 	//
 	flag.Parse()
 
@@ -85,4 +90,16 @@ Prints Super-Power variant Chains.
 		ss.SuperPowers()
 	}
 
+	//5)Flag Prints Liquidity Reward Program Chains
+	if *FlagBuySuperPower != "0" {
+		var EGLD string
+		Addy := ss.ElrondAddress(*FlagBuySuperPower)
+
+		//Getting EGLD Amount
+		fmt.Println("How Much EGLD you want to spend?")
+		_, _ = fmt.Scan(&EGLD)
+		Money := p.NFS(EGLD)
+
+		ss.Acquisition(Addy, Money)
+	}
 }

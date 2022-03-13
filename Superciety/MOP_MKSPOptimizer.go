@@ -14,32 +14,35 @@ import (
 //		Functions that are used for the MKSP-Optimizer Meta-Operation.
 //
 //
-//[1]		SuperLPMelter		Melts the LP to Super to ascertain if a greater MKSP can be achieved.
-//[2]		SuperMelter		Melts the Super SuperLP to ascertain if a greater MKSP can be achieved.
+//[1]a		SuperLPMelterCore	Melts the LP to Super to ascertain if a greater MKSP can be achieved.
+//[1]b		SuperLPMelter		Applies SuperLPMelterCore to a given Address.
+//[2]a		SuperMelterCore		Melts the Super SuperLP to ascertain if a greater MKSP can be achieved.
+//[2]b		SuperMelter		Applies SuperMelterCore to a given Address.
 //[3]		SuperLPtoSuperConvertor	Displays Information regarding Super-LP to Super Conversion.
 //[4]		SuperToSuperLPConvertor	Displays Information regarding Super to Super-LP Conversion.
-//[5]		Optimizer		The Main Function for this Meta-Operation.
+//[5]a		MKSPCoreOptimizer	The Core Optimizer Function.
+//[5]b		Optimizer		The Main Optimizer Function.
 //
 //======================================================================================================================
 //======================================================================================================================
 //
 //
-//[1]		SuperLPMelter
+//[1]a		SuperLPMelterCore
 //		Melts the LP to Super to ascertain if a greater MKSP can be achieved.
 //
 //
-func SuperLPMelter(Addy ElrondAddress, CurrentPrice MetaSuperPrice) (OptimalLpReduction, MaxSuperPower *p.Decimal) {
+func SuperLPMelterCore(SuperAmount, LPAmount *p.Decimal, Meta, Display bool, CurrentPrice MetaSuperPrice) (OptimalLpReduction, MaxSuperPower *p.Decimal) {
 	//Obtaining Address Specifications
 	//These represent Super amount, SuperLP Amount, and Meta.
 	var (
 		MaxIteration int64
 	)
-	MySuper, MySuperLp := GetAddySuperValues(Addy)
-	SFT1Chain := CreateCamelChain()
-	GetMeta := IzMeta(Addy, SFT1Chain)
+	//MySuper, MySuperLp := GetAddySuperValues(Addy)
+	//SFT1Chain := CreateCamelChain()
+	//GetMeta := IzMeta(Addy, SFT1Chain)
 
 	//Address Meta-kosonic Super-Power
-	OriginalMKSP := ConvertSupersToMKSP(MySuper, MySuperLp, GetMeta)
+	OriginalMKSP := ConvertSupersToMKSP(SuperAmount, LPAmount, Meta)
 
 	//Initializing MaxSuperPower as the Address MKSP
 	MaxSuperPower = OriginalMKSP
@@ -47,9 +50,11 @@ func SuperLPMelter(Addy ElrondAddress, CurrentPrice MetaSuperPrice) (OptimalLpRe
 	//Computes how many Melt Steps must be calculated.
 	//One Melt Step is the equivalent of 10 USD
 	//This is how many iterations a new MKSP will be computed for.
-	fmt.Println("Super-EGLD-LP         is:", KO(MySuperLp), "$UPER-EGLD-LP")
-	fmt.Println("And its Price         is:", KO(CurrentPrice.SP.LPVC.TotalUSD), "$")
-	MeltSteps := mt.TruncateCustom(mt.DIVxc(mt.MULxc(MySuperLp, CurrentPrice.SP.LPVC.TotalUSD), p.NFI(10)), 0)
+	if Display == true {
+		fmt.Println("Super-EGLD-LP         is:", KO(LPAmount), "$UPER-EGLD-LP")
+		fmt.Println("And its Price         is:", KO(CurrentPrice.SP.LPVC.TotalUSD), "$")
+	}
+	MeltSteps := mt.TruncateCustom(mt.DIVxc(mt.MULxc(LPAmount, CurrentPrice.SP.LPVC.TotalUSD), p.NFI(10)), 0)
 	fmt.Println(MeltSteps, "Liquidity melt steps must be checked:")
 
 	//Depending on the number of Melt-Steps, the amount of LP that gets subtracted for each step is computed.
@@ -57,7 +62,7 @@ func SuperLPMelter(Addy ElrondAddress, CurrentPrice MetaSuperPrice) (OptimalLpRe
 	//The Super resulted from breaking the LP (Super and Super bought with EGLD)
 	//Is added on top of the original Super Amount
 	//And a new MKSP is computed.
-	SubtractingLP := mt.DIVxc(MySuperLp, MeltSteps)
+	SubtractingLP := mt.DIVxc(LPAmount, MeltSteps)
 
 	//Virtual Values are values that are virtually created by the SuperLPMelter
 	//VirtualPrice are the Prices Resulted when LP is melted and used to buy Super.
@@ -67,10 +72,10 @@ func SuperLPMelter(Addy ElrondAddress, CurrentPrice MetaSuperPrice) (OptimalLpRe
 	VirtualPrices := CurrentPrice
 	//Virtual Super is the Super obtained after a MeltStep
 	//It starts as MySuper
-	ObtainedVirtualSuper := MySuper
+	ObtainedVirtualSuper := SuperAmount
 	//RemainingVirtualLp is the SuperLP remaining after a MeltStep
 	//It starts as MySuperLP
-	RemainingVirtualLP := MySuperLp
+	RemainingVirtualLP := LPAmount
 
 	for i := int64(0); i < p.INT64(MeltSteps); i++ {
 		var (
@@ -96,20 +101,36 @@ func SuperLPMelter(Addy ElrondAddress, CurrentPrice MetaSuperPrice) (OptimalLpRe
 		ObtainedVirtualSuper = mt.TruncateCustom(mt.ADDxc(ObtainedVirtualSuper, TotalSuperGained), 18)
 
 		//Getting the Virtual MKSP used as base for comparison.
-		VirtualMKSP := ConvertSupersToMKSP(ObtainedVirtualSuper, RemainingVirtualLP, GetMeta)
+		VirtualMKSP := ConvertSupersToMKSP(ObtainedVirtualSuper, RemainingVirtualLP, Meta)
 		MaxSuperPower = mt.MaxDecimal(VirtualMKSP, MaxSuperPower)
 		if mt.DecimalGreaterThan(MaxSuperPower, VirtualMKSP) == false {
 			MaxIteration = i + 1
 		}
 	}
+	fmt.Println("")
 	if MaxIteration == 0 {
 		OptimalLpReduction = p.NFI(0)
 	} else if mt.DecimalEqual(p.NFI(MaxIteration), MeltSteps) == true {
-		OptimalLpReduction = MySuperLp
+		OptimalLpReduction = LPAmount
 	} else {
 		OptimalLpReduction = mt.TruncateCustom(mt.MULxc(SubtractingLP, p.NFI(MaxIteration)), 18)
 	}
 
+	return OptimalLpReduction, MaxSuperPower
+}
+
+//
+//
+//[1]b		SuperLPMelter
+//		Applies SuperLPMelterCore to a given Address.
+//
+//
+func SuperLPMelter(Addy ElrondAddress, Display bool, CurrentPrice MetaSuperPrice) (OptimalLpReduction, MaxSuperPower *p.Decimal) {
+	MySuper, MySuperLp := GetAddySuperValues(Addy)
+	SFT1Chain := CreateCamelChain()
+	GetMeta := IzMeta(Addy, SFT1Chain)
+
+	OptimalLpReduction, MaxSuperPower = SuperLPMelterCore(MySuper, MySuperLp, GetMeta, Display, CurrentPrice)
 	return OptimalLpReduction, MaxSuperPower
 
 }
@@ -119,22 +140,17 @@ func SuperLPMelter(Addy ElrondAddress, CurrentPrice MetaSuperPrice) (OptimalLpRe
 //======================================================================================================================
 //
 //
-//[2]		SuperMelter
+//[2]a		SuperMelterCore
 //		Melts the Super SuperLP to ascertain if a greater MKSP can be achieved.
 //
 //
-func SuperMelter(Addy ElrondAddress, CurrentPrice MetaSuperPrice) (OptimalSuperReduction, MaxSuperPower *p.Decimal) {
-	//Obtaining Address Specifications
-	//These represent Super amount, SuperLP Amount, and Meta.
+func SuperMelterCore(SuperAmount, LPAmount *p.Decimal, Meta, Display bool, CurrentPrice MetaSuperPrice) (OptimalSuperReduction, MaxSuperPower *p.Decimal) {
 	var (
 		MaxIteration int64
 	)
-	MySuper, MySuperLp := GetAddySuperValues(Addy)
-	SFT1Chain := CreateCamelChain()
-	GetMeta := IzMeta(Addy, SFT1Chain)
 
 	//Address Meta-kosonic Super-Power
-	OriginalMKSP := ConvertSupersToMKSP(MySuper, MySuperLp, GetMeta)
+	OriginalMKSP := ConvertSupersToMKSP(SuperAmount, LPAmount, Meta)
 
 	//Initializing MaxSuperPower as the Address MKSP
 	MaxSuperPower = OriginalMKSP
@@ -142,9 +158,11 @@ func SuperMelter(Addy ElrondAddress, CurrentPrice MetaSuperPrice) (OptimalSuperR
 	//Computes how many Melt Steps must be calculated.
 	//One Melt Step is the equivalent of 10 USD
 	//This is how many iterations a new MKSP will be computed for.
-	fmt.Println("Address Super         is:", KO(MySuper), "$UPER")
-	fmt.Println("And its Price         is:", KO(CurrentPrice.SP.SV.USDperSUPER), "$")
-	MeltSteps := mt.TruncateCustom(mt.DIVxc(mt.MULxc(MySuper, CurrentPrice.SP.SV.USDperSUPER), p.NFI(10)), 0)
+	if Display == true {
+		fmt.Println("Address Super         is:", KO(SuperAmount), "$UPER")
+		fmt.Println("And its Price         is:", KO(CurrentPrice.SP.SV.USDperSUPER), "$")
+	}
+	MeltSteps := mt.TruncateCustom(mt.DIVxc(mt.MULxc(SuperAmount, CurrentPrice.SP.SV.USDperSUPER), p.NFI(10)), 0)
 	fmt.Println(MeltSteps, "Super melt steps must be checked:")
 
 	//Depending on the number of Melt-Steps, the amount of Super that gets subtracted for each step is computed.
@@ -153,7 +171,7 @@ func SuperMelter(Addy ElrondAddress, CurrentPrice MetaSuperPrice) (OptimalSuperR
 	//There is a small amount of remaining Super that cant be paired with EGLD, because we cant swap for the
 	//	perfect Amount of EGLD so that no Super remains
 	//With the resulted LP a new MKSP is computed
-	SubtractingSuper := mt.DIVxc(MySuper, MeltSteps)
+	SubtractingSuper := mt.DIVxc(SuperAmount, MeltSteps)
 
 	//Virtual Values are values that are virtually created by the SuperMelter
 	//VirtualPrice are the Prices Resulted when half of the Super melted is swapped to EGLD
@@ -163,10 +181,10 @@ func SuperMelter(Addy ElrondAddress, CurrentPrice MetaSuperPrice) (OptimalSuperR
 	VirtualPrices := CurrentPrice
 	//Virtual LP is the SuperLP obtained after a MeltStep
 	//It starts as MySuperLP
-	ObtainedVirtualSuperLP := MySuperLp
+	ObtainedVirtualSuperLP := LPAmount
 	//RemainingVirtualSuper is the Super remaining after a MeltStep
 	//It starts as MySuper
-	RemainingVirtualSuper := MySuper
+	RemainingVirtualSuper := SuperAmount
 
 	for i := int64(0); i < p.INT64(MeltSteps); i++ {
 		var (
@@ -195,19 +213,34 @@ func SuperMelter(Addy ElrondAddress, CurrentPrice MetaSuperPrice) (OptimalSuperR
 		//	This is the Increased VirtualLP
 		ObtainedVirtualSuperLP = mt.TruncateCustom(mt.ADDxc(ObtainedVirtualSuperLP, ResultedLP), 18)
 
-		VirtualMKSP := ConvertSupersToMKSP(RemainingVirtualSuper, ObtainedVirtualSuperLP, GetMeta)
+		VirtualMKSP := ConvertSupersToMKSP(RemainingVirtualSuper, ObtainedVirtualSuperLP, Meta)
 		MaxSuperPower = mt.MaxDecimal(VirtualMKSP, MaxSuperPower)
 		if mt.DecimalGreaterThan(MaxSuperPower, VirtualMKSP) == false {
 			MaxIteration = i + 1
 		}
 	}
+	fmt.Println("")
 	if MaxIteration == 0 {
 		OptimalSuperReduction = p.NFI(0)
 	} else {
 		OptimalSuperReduction = mt.TruncateCustom(mt.MULxc(SubtractingSuper, p.NFI(MaxIteration)), 18)
 	}
 	return OptimalSuperReduction, MaxSuperPower
+}
 
+//
+//
+//[2]b		SuperMelter
+//		Applies SuperMelterCore to a given Address.
+//
+//
+func SuperMelter(Addy ElrondAddress, Display bool, CurrentPrice MetaSuperPrice) (OptimalSuperReduction, MaxSuperPower *p.Decimal) {
+	MySuper, MySuperLp := GetAddySuperValues(Addy)
+	SFT1Chain := CreateCamelChain()
+	GetMeta := IzMeta(Addy, SFT1Chain)
+
+	OptimalSuperReduction, MaxSuperPower = SuperMelterCore(MySuper, MySuperLp, GetMeta, Display, CurrentPrice)
+	return OptimalSuperReduction, MaxSuperPower
 }
 
 //
@@ -219,7 +252,7 @@ func SuperMelter(Addy ElrondAddress, CurrentPrice MetaSuperPrice) (OptimalSuperR
 //		Displays Information regarding LP to Super Conversion.
 //
 //
-func SuperLPtoSuperConvertor(InitialLP, UsedLP *p.Decimal, Prices MetaSuperPrice) {
+func SuperLPtoSuperConvertor(InitialLP, UsedLP *p.Decimal, Display bool, Prices MetaSuperPrice) {
 	Super1 := mt.TruncateCustom(mt.MULxc(UsedLP, Prices.SP.LPVC.SuperHalf), 18)
 	Elrond := mt.TruncateCustom(mt.MULxc(UsedLP, Prices.SP.LPVC.ElrondHalf), 18)
 	SuperBought, NewPrices := BuySuper(Elrond, Prices)
@@ -231,26 +264,29 @@ func SuperLPtoSuperConvertor(InitialLP, UsedLP *p.Decimal, Prices MetaSuperPrice
 	//PP := PercentSwing(P1,P2)
 
 	//Printing Data
-	fmt.Println("STEP0:          from the:", KO(InitialLP), "$UPER-EGLD-LP")
-	fmt.Println("")
-	fmt.Println("STEP1:            remove:", KO(UsedLP), "$UPER-EGLD-LP which")
-	fmt.Println("STEP2:           creates:", KO(Super1), "$UPER")
-	fmt.Println("STEP3:               and:", KO(Elrond), "EGLD; use this EGLD")
-	fmt.Println("STEP4:            to buy:", KO(SuperBought), "$UPER;")
-	fmt.Println("")
-	fmt.Println("STEP5:        you gained:", KO(SuperGained), "$UPER anew.")
-	if mt.DecimalEqual(RemainingLP, p.NFI(0)) == true {
-		fmt.Println("STEP6:          and have:", KO(RemainingLP), "SUPER-EGLD-LP left.")
-	} else {
-		fmt.Println("STEP6:          and have:", KO(RemainingLP), "$UPER-EGLD-LP left.")
+	if Display == true {
+		fmt.Println("STEP0:          from the:", KO(InitialLP), "$UPER-EGLD-LP")
+		fmt.Println("")
+		fmt.Println("STEP1:            remove:", KO(UsedLP), "$UPER-EGLD-LP which")
+		fmt.Println("STEP2:           creates:", KO(Super1), "$UPER")
+		fmt.Println("STEP3:               and:", KO(Elrond), "EGLD; use this EGLD")
+		fmt.Println("STEP4:            to buy:", KO(SuperBought), "$UPER;")
+		fmt.Println("")
+		fmt.Println("STEP5:        you gained:", KO(SuperGained), "$UPER anew.")
+		if mt.DecimalEqual(RemainingLP, p.NFI(0)) == true {
+			fmt.Println("STEP6:          and have:", KO(RemainingLP), "SUPER-EGLD-LP left.")
+		} else {
+			fmt.Println("STEP6:          and have:", KO(RemainingLP), "$UPER-EGLD-LP left.")
+		}
+
+		fmt.Println("")
+		fmt.Println("=======")
+		//fmt.Println("Increased the price by ",PP,"%")
+		fmt.Println("Price movement from:")
+		fmt.Println(Prices.SP.SV.USDperSUPER, "USD to:")
+		fmt.Println(NewPrices.SP.SV.USDperSUPER, "USD.")
 	}
 
-	fmt.Println("")
-	fmt.Println("=======")
-	//fmt.Println("Increased the price by ",PP,"%")
-	fmt.Println("Price movement from:")
-	fmt.Println(Prices.SP.SV.USDperSUPER, "USD to:")
-	fmt.Println(NewPrices.SP.SV.USDperSUPER, "USD.")
 }
 
 //
@@ -262,7 +298,7 @@ func SuperLPtoSuperConvertor(InitialLP, UsedLP *p.Decimal, Prices MetaSuperPrice
 //		Displays Information regarding Super to Super-LP Conversion.
 //
 //
-func SuperToSuperLPConvertor(InitialSuper, UsedSuper *p.Decimal, Prices MetaSuperPrice) {
+func SuperToSuperLPConvertor(InitialSuper, UsedSuper *p.Decimal, Display bool, Prices MetaSuperPrice) (Step2 *p.Decimal) {
 	HalfSuper := mt.TruncateCustom(mt.DIVxc(UsedSuper, p.NFI(2)), 18)
 	EgldGained, NewPrices := SellSuper(HalfSuper, Prices)
 	ConsumedSuper, ResultedLP := AddLiquidity(EgldGained, NewPrices)
@@ -274,19 +310,24 @@ func SuperToSuperLPConvertor(InitialSuper, UsedSuper *p.Decimal, Prices MetaSupe
 	//PP := PercentSwing(P1,P2)
 
 	//Printing Data
-	fmt.Println("STEP0,          from the:", KO(InitialSuper), "$UPER")
-	fmt.Println("")
-	fmt.Println("STEP1:               use:", KO(HalfSuper), "$UPER to swap to EGLD;")
-	fmt.Println("STEP2:               use:", KO(EgldGained), "EGLD to add Liquidity;")
-	fmt.Println("STEP3:    you now gained:", KO(ResultedLP), "$UPER-EGLD-LP anew.")
-	fmt.Println("")
-	fmt.Println("STEP4: you are left with:", KO(RemainingSuper), "$UPER")
-	fmt.Println("")
-	fmt.Println("========")
-	//fmt.Println("Dropped the price by ",PP,"%")
-	fmt.Println("Price movement from:")
-	fmt.Println(Prices.SP.SV.USDperSUPER, "USD to:")
-	fmt.Println(NewPrices.SP.SV.USDperSUPER, "USD.")
+	if Display == true {
+		fmt.Println("STEP0,          from the:", KO(InitialSuper), "$UPER")
+		fmt.Println("")
+		fmt.Println("STEP1:               use:", KO(HalfSuper), "$UPER to swap to EGLD;")
+		fmt.Println("STEP2:               use:", KO(EgldGained), "EGLD to add Liquidity;")
+		fmt.Println("STEP3:    you now gained:", KO(ResultedLP), "$UPER-EGLD-LP anew.")
+		fmt.Println("")
+		fmt.Println("STEP4: you are left with:", KO(RemainingSuper), "$UPER")
+		fmt.Println("")
+		fmt.Println("========")
+		//fmt.Println("Dropped the price by ",PP,"%")
+		fmt.Println("Price movement from:")
+		fmt.Println(Prices.SP.SV.USDperSUPER, "USD to:")
+		fmt.Println(NewPrices.SP.SV.USDperSUPER, "USD.")
+	}
+
+	Step2 = EgldGained
+	return Step2
 }
 
 //
@@ -294,63 +335,104 @@ func SuperToSuperLPConvertor(InitialSuper, UsedSuper *p.Decimal, Prices MetaSupe
 //======================================================================================================================
 //
 //
-//[5]		Optimizer
-//		The Main Optimizer Function.
+//[5]a		MKSPCoreOptimizer
+//		The Core Optimizer Function. Applies MKSP optimization to a given
+//		SuperAmount, LPAmount, Meta, and Price combination.
 //
 //
-func Optimizer(Addy ElrondAddress) {
-	ScannedSuperPrices := GetAllSuperPrices()
-	PricePrinter(ScannedSuperPrices)
-	AddySuper, AddyLP, MKSP := AddySpecs(Addy)
-	AddySpecsPrinter(Addy)
-	fmt.Println("")
-	fmt.Println("")
-	fmt.Println("")
-	fmt.Println("==========================LiquidityMelter===============================================")
-	LPReduction, Value := SuperLPMelter(Addy, ScannedSuperPrices)
+func MKSPCoreOptimizer(SuperAmount, LPAmount *p.Decimal, Meta, Display bool, Price MetaSuperPrice) *p.Decimal {
+	var (
+		ReturnedValue = new(p.Decimal)
+	)
+	MKSP := ConvertSupersToMKSP(SuperAmount, LPAmount, Meta)
+	if Display == true {
+		SpecsPrinterCore(SuperAmount, LPAmount, Meta)
+		PricePrinter(Price)
+		fmt.Println("")
+		fmt.Println("")
+		fmt.Println("")
+		fmt.Println("==========================LiquidityMelter===============================================")
+	}
+	LPReduction, Value := SuperLPMelterCore(SuperAmount, LPAmount, Meta, Display, Price)
 	if mt.DecimalEqual(MKSP, Value) == false {
-		fmt.Println("")
-		fmt.Println("======================END-LiquidityMelter===============================================")
-		fmt.Println("")
-
-		fmt.Println("==========================Results=======================================================")
-		SuperLPtoSuperConvertor(AddyLP, LPReduction, ScannedSuperPrices)
-		fmt.Println("")
-		fmt.Println("Liquidating             :", KO(LPReduction), "$UPER-EGLD-LP")
-		TwoMKSPrinter(MKSP, Value)
-		fmt.Println("======================END-Results=======================================================")
-		fmt.Println("")
-	} else {
-		fmt.Println("")
-		fmt.Println("======================END-LiquidityMelter===============================================")
-		fmt.Println("")
-		fmt.Println("==========================SuperMelter===================================================")
-		SuperReduction, Value2 := SuperMelter(Addy, ScannedSuperPrices)
-		if mt.DecimalEqual(MKSP, Value2) == false {
+		if Display == true {
 			fmt.Println("")
-			fmt.Println("======================END-SuperMelter===================================================")
+			fmt.Println("======================END-LiquidityMelter===============================================")
 			fmt.Println("")
-
 			fmt.Println("==========================Results=======================================================")
-			SuperToSuperLPConvertor(AddySuper, SuperReduction, ScannedSuperPrices)
+		}
+		SuperLPtoSuperConvertor(LPAmount, LPReduction, Display, Price)
+		if Display == true {
 			fmt.Println("")
-			fmt.Println("Spending                :", KO(SuperReduction), "$UPER to buy LP")
-			TwoMKSPrinter(MKSP, Value2)
-			fmt.Println("======================END-Results=======================================================")
-			fmt.Println("")
-		} else {
-			fmt.Println("")
-			fmt.Println("======================END-SuperMelter===================================================")
-			fmt.Println("")
-
-			fmt.Println("==========================Results=======================================================")
-			fmt.Println("Your $uper and LP amounts are optimal for Maximum MKSP")
+			fmt.Println("Liquidating             :", KO(LPReduction), "$UPER-EGLD-LP")
+			TwoMKSPrinter(MKSP, Value)
 			fmt.Println("======================END-Results=======================================================")
 			fmt.Println("")
 		}
+	} else {
+		if Display == true {
+			fmt.Println("")
+			fmt.Println("======================END-LiquidityMelter===============================================")
+			fmt.Println("")
+			fmt.Println("==========================SuperMelter===================================================")
+		}
+		SuperReduction, Value2 := SuperMelterCore(SuperAmount, LPAmount, Meta, Display, Price)
+		if mt.DecimalEqual(MKSP, Value2) == false {
+			if Display == true {
+				fmt.Println("")
+				fmt.Println("======================END-SuperMelter===================================================")
+				fmt.Println("")
+
+				fmt.Println("==========================Results=======================================================")
+			}
+			ReturnedValue = SuperToSuperLPConvertor(SuperAmount, SuperReduction, Display, Price)
+			if Display == true {
+				fmt.Println("")
+				fmt.Println("Spending                :", KO(SuperReduction), "$UPER to buy LP")
+				TwoMKSPrinter(MKSP, Value2)
+				fmt.Println("======================END-Results=======================================================")
+				fmt.Println("")
+			}
+		} else {
+			if Display == true {
+				fmt.Println("")
+				fmt.Println("======================END-SuperMelter===================================================")
+				fmt.Println("")
+
+				fmt.Println("==========================Results=======================================================")
+				fmt.Println("Your $uper and LP amounts are optimal for Maximum MKSP")
+				fmt.Println("======================END-Results=======================================================")
+				fmt.Println("")
+			}
+		}
+		if Display == true {
+			fmt.Println("")
+		}
+	}
+	if Display == true {
 		fmt.Println("")
 	}
+	return ReturnedValue
+}
+
+//
+//
+//======================================================================================================================
+//
+//
+//[5]b		Optimizer
+//		The Main Optimizer Function. Applies MKSP optimization to a given Elrond Address.
+//
+//
+func Optimizer(Addy ElrondAddress) {
+	MySuper, MySuperLp := GetAddySuperValues(Addy)
+	SFT1Chain := CreateCamelChain()
+	GetMeta := IzMeta(Addy, SFT1Chain)
+	ScannedSuperPrices := GetAllSuperPrices()
+
 	fmt.Println("")
+	fmt.Println("ADDRESS:", Addy)
+	MKSPCoreOptimizer(MySuper, MySuperLp, GetMeta, true, ScannedSuperPrices)
 }
 
 //======================================================================================================================

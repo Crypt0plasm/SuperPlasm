@@ -15,28 +15,52 @@ import (
 //		Functions that are used for printing various data combination on screen.
 //
 //
-//[1]		AddySpecsPrinter	Prints Elrond Address Super, SuperLP and MKSP Values.
+//[1]a		AddySpecsPrinter	Prints Super, SuperLP and MKSP Values, given an Elrond Address.
+//[1]b          SpecsPrinterCore	Prints Super, SuperLP and MKSP Values.
 //[2]           PricePrinter            Prints the information inside a MetaSuperPrice Structure.
+//[3]           TwoMKSPrinter		Prints the information inside a MetaSuperPrice Structure.
+//
+//		[4]Offset String Functions
+//[4]a          PDO			creates a specific length "empty" string, needed for aligned printing purposes.
+//[4]b          PDO2			same as PDO, but uses a string an Input Amount.
+//[4]c          KO			creates a string from a Decimal Number, needed for aligned printing purposes.
+//[4]d          KO2			same as KO, but uses a string an Input Amount.
 //
 //======================================================================================================================
 //======================================================================================================================
 //
 //
-//[1]           AddySpecsPrinter
-//              Prints Elrond Address Super, SuperLP and MKSP Values.
+//[1]a          AddySpecsPrinter
+//              Prints Super, SuperLP and MKSP Values, given an Elrond Address.
 //
 //
 func AddySpecsPrinter(Addy ElrondAddress) {
-	Super, SuperLP, SP := AddySpecs(Addy)
 	fmt.Println("")
-	fmt.Println("==========================Scanned Input=================================================")
 	fmt.Println("ADDRESS:", Addy)
-	fmt.Println("Address         Super is:", KO(Super))
-	fmt.Println("Address Super-Egld-LP is:", KO(SuperLP))
-	fmt.Println("Address          MKSP is:", KO2(mt.MKSP2Print(SP)))
+
+	SFT1Chain := CreateCamelChain()
+	GetMeta := IzMeta(Addy, SFT1Chain)
+	Super, LP := GetAddySuperValues(Addy)
+
+	SpecsPrinterCore(Super, LP, GetMeta)
+	return
+}
+
+//
+//
+//======================================================================================================================
+//[1]b          SpecsPrinterCore
+//              Prints Super, SuperLP and MKSP Values.
+//
+//
+func SpecsPrinterCore(SuperAmount, LPAmount *p.Decimal, Meta bool) {
+	MKSP := ConvertSupersToMKSP(SuperAmount, LPAmount, Meta)
+	fmt.Println("==========================Scanned Input=================================================")
+	fmt.Println("Amount          Super is:", KO(SuperAmount))
+	fmt.Println("Amount  Super-Egld-LP is:", KO(LPAmount))
+	fmt.Println("Amount           MKSP is:", KO2(mt.MKSP2Print(MKSP)))
 	fmt.Println("======================END-Scanned Input=================================================")
 	fmt.Println("")
-	return
 }
 
 //
@@ -62,9 +86,16 @@ func PricePrinter(Prices MetaSuperPrice) {
 	fmt.Println("")
 }
 
+//
+//
 //======================================================================================================================
-//======================================================================================================================
-
+//
+//
+//[3]           TwoMKSPrinter
+//              Prints the information pertaining to a MKSP increase.
+//		MKSP1 is the smaller value, MKSP2 is the greater value.
+//
+//
 func TwoMKSPrinter(MKSP1, MKSP2 *p.Decimal) {
 	fmt.Println("Will increase your Meta-Kosonic Super-Power from:")
 	fmt.Println("                        :", KO2(mt.MKSP2Print(MKSP1)), "to:")
@@ -72,7 +103,20 @@ func TwoMKSPrinter(MKSP1, MKSP2 *p.Decimal) {
 	fmt.Println("                        :", KO2(mt.MKSP2Print(mt.SUBxc(MKSP2, MKSP1))), "gain.")
 }
 
-//PriceDisplayOffset
+//
+//
+//======================================================================================================================
+//======================================================================================================================
+//
+//
+//		[4]Offset String Functions
+//
+//
+//[4]a          PDO
+//              PDO - Price Display Offset; creates a specific length "empty" string,
+//             	needed for aligned printing purposes. Its length is dependent of the Input Amount
+//
+//
 func PDO(Amount *p.Decimal) string {
 	var Result string
 	Length := len(mt.KosonicDecimalConversion(p.NFI(10000000000))) - len(mt.KosonicDecimalConversion(Amount))
@@ -80,7 +124,15 @@ func PDO(Amount *p.Decimal) string {
 	return Result
 }
 
-//PDO for strings
+//
+//
+//======================================================================================================================
+//
+//
+//[4]b          PDO2
+//              PDO - Price Display Offset 2; same as PDO, but uses a string an Input Amount.
+//
+//
 func PDO2(Amount string) string {
 	var Result string
 	Length := len(mt.KosonicDecimalConversion(p.NFI(10000000000))) - len(Amount)
@@ -88,7 +140,17 @@ func PDO2(Amount string) string {
 	return Result
 }
 
-//KosonicOffset
+//
+//
+//======================================================================================================================
+//
+//
+//[4]c          KO
+//              KO - Kosonic Offset; creates a concatenated string from a Decimal Number
+//		that has a proper offset (computed via PDO) needed for aligned printing purposes.
+//
+//
+//
 func KO(Number *p.Decimal) string {
 	String1 := PDO(Number)
 	String2 := mt.KosonicDecimalConversion(Number)
@@ -96,9 +158,20 @@ func KO(Number *p.Decimal) string {
 	return Result
 }
 
-//KosonicOffset for strings
+//
+//
+//======================================================================================================================
+//
+//
+//[4]d          KO2
+//              KO2 - Kosonic Offset 2; same as KO, but uses a string an Input Amount.
+//
+//
 func KO2(Value string) string {
 	String1 := PDO2(Value)
 	Result := String1 + Value
 	return Result
 }
+
+//======================================================================================================================
+//======================================================================================================================
