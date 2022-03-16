@@ -47,6 +47,7 @@ var (
 	ExA1 = ElrondAddress("erd1jd7gxdrv7qkghmm4afzk9hy6pw4qa5cfwt0nl7tmyhqujktc27rskzqmke") //Community Funds
 	ExA2 = ElrondAddress("erd1qqqqqqqqqqqqqpgqdx6z3sauy49c5k6c6lwhjqclrfwlxlud2jpsvwj5dp") //Maiar Super-EGLD-LP Pool
 	ExA3 = ElrondAddress("erd1qqqqqqqqqqqqqpgqawkm2tlyyz6vtg02fcr5w02dyejp8yrw0y8qlucnj2") //Jexchange Smart Contract
+	ExA4 = ElrondAddress("erd1qqqqqqqqqqqqqpgqhyd07gd8ugs9kc3hqp6mh8l3898mq6hy27rsyh7xkd") //LiqRewardProgram SC.
 	//
 	//
 	//[A]3      Token Identifiers

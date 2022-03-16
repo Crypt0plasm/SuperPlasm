@@ -128,10 +128,8 @@ func CreateSuperPowerChainCore(Chain1 []BalanceSuper, Chain2 []BalanceSuperLP, S
 		//StringToPrint := BaseStringPoint + StringPoint
 		fmt.Print("\r", BaseStringPoint, " ", i)
 
-		if Chain1[i].Address == ExA1 || Chain1[i].Address == ExA2 || Chain1[i].Address == ExA3 {
-			//Unit := SuperVLP{Chain1[i].Address, p.NFS("0")}
-			//FinalChain = append(FinalChain, Unit)
-		} else {
+		//Work only if Address is non Exception
+		if ComputeExceptionAddress(Chain1[i].Address) == false {
 			//0)Address is Chain1[i].Address
 
 			//1)Getting the Super Value
@@ -182,6 +180,16 @@ func CreateSuperPowerChainCore(Chain1 []BalanceSuper, Chain2 []BalanceSuperLP, S
 	}
 	fmt.Println("")
 	return FinalChain
+}
+func ComputeExceptionAddress(Addy ElrondAddress) bool {
+	Exceptions := []ElrondAddress{ExA1, ExA2, ExA3, ExA4}
+	var Result = false
+	for i := 0; i < len(Exceptions); i++ {
+		if Addy == Exceptions[i] {
+			Result = true
+		}
+	}
+	return Result
 }
 
 //
